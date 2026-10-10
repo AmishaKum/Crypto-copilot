@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-slate-50 text-slate-900 font-sans antialiased dark:bg-navy-950 dark:text-slate-100; }
+}
+@layer components {
+  .card { @apply rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur
+                 dark:border-navy-700 dark:bg-navy-900/70 animate-rise; }
+  .label { @apply text-xs font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400; }
+  .num { @apply font-mono tabular-nums; }
+}
+.grid-glow {
+  background-image:
+    radial-gradient(600px 300px at 85% -10%, rgba(247,147,26,.18), transparent 60%),
+    linear-gradient(rgba(148,163,184,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148,163,184,.06) 1px, transparent 1px);
+  background-size: auto, 32px 32px, 32px 32px;
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
