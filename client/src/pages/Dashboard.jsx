@@ -1,68 +1,49 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Search, Sparkles, Wallet } from "lucide-react";
 import { useApi } from "../lib/useApi";
-import { money, pct } from "../lib/format";
+import { useAuth, useCurrency } from "../context/AuthContext";
+import { PageHeader, Segmented, Card } from "../components/ui";
+import PriceHero from "../components/market/PriceHero";
+import PriceChart from "../components/market/PriceChart";
+import FeesCard from "../components/market/FeesCard";
+import Watchlist from "../components/market/Watchlist";
 
-function Status({ ok, label }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-      <span className={`h-2 w-2 rounded-full ${ok ? "bg-emerald-500 animate-pulseDot" : "bg-rose-500"}`} />
-      {label}
-    </span>
-  );
-}
+const SHORTCUTS = [
+  { to: "/app/explorer", icon: Search, title: "Investigate a transaction", text: "Paste a txid to see fees and confirmations." },
+  { to: "/app/assistant", icon: Sparkles, title: "Ask the AI copilot", text: "Explanations backed by live data and sources." },
+  { to: "/app/portfolio", icon: Wallet, title: "Practice trading", text: "Buy and sell BTC with virtual money." },
+];
 
 export default function Dashboard() {
-  const [cur, setCur] = useState("USD");
-  const health = useApi("/health", 30_000);
-  const price = useApi("/market/price", 60_000);
-  const fees = useApi("/market/fees", 30_000);
-  const p = price.data;
-  const change = p?.change24h?.[cur.toLowerCase()];
+  const { user } = useAuth();
+  const [currency, setCurrency] = useCurrency();
+  const snapshot = useApi("/market/snapshot", { refreshMs: 60_000 });
+  const fees = useApi("/market/fees", { refreshMs: 60_000 });
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="label">Bitcoin intelligence</p>
-          <h1 className="font-display text-3xl font-bold sm:text-4xl">Market pulse</h1>
+    <div className="fade-in">
+      <PageHeader eyebrow={`Hi ${user.name.split(" ")[0]}`} title="Market pulse"
+        actions={<Segmented label="Display currency" options={["USD", "INR"]} value={currency} onChange={setCurrency} />} />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
+          <PriceHero snapshot={snapshot} currency={currency} />
+          <PriceChart currency={currency} />
         </div>
-        <div className="flex items-center gap-4">
-          <Status ok={health.data?.status === "ok"} label={health.data ? `API · DB ${health.data.db}` : "API offline"} />
-          <div role="group" aria-label="Currency" className="flex rounded-full border border-slate-300 p-0.5 text-sm dark:border-navy-600">
-            {["USD", "INR"].map((c) => (
-              <button key={c} onClick={() => setCur(c)} aria-pressed={cur === c}
-                className={`rounded-full px-3 py-1 transition ${cur === c ? "bg-btc text-navy-950 font-semibold" : "text-slate-500"}`}>{c}</button>
-            ))}
-          </div>
+        <div className="space-y-4">
+          <FeesCard fees={fees} />
+          <Watchlist currency={currency} />
         </div>
       </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <section className="card md:col-span-2">
-          <p className="label">BTC price</p>
-          {price.error && !p ? <p className="mt-3 text-rose-500">Couldn't load price: {price.error}</p> : (
-            <>
-              <p className="num mt-2 text-4xl font-semibold sm:text-5xl">{p ? money(p[cur.toLowerCase()], cur) : "…"}</p>
-              <p className={`num mt-2 text-sm ${change >= 0 ? "text-emerald-500" : "text-rose-500"}`}>{pct(change)} <span className="text-slate-500">24h</span></p>
-              {p && <p className="mt-4 text-xs text-slate-500">Source: {p.source} · updated {new Date(p.updatedAt).toLocaleTimeString()}</p>}
-            </>
-          )}
-        </section>
-
-        <section className="card">
-          <p className="label">Network fees</p>
-          {fees.error && !fees.data ? <p className="mt-3 text-rose-500">{fees.error}</p> : (
-            <ul className="mt-3 space-y-2">
-              {[["Next block", "fastest"], ["~30 min", "halfHour"], ["~1 hour", "hour"], ["Economy", "economy"]].map(([l, k]) => (
-                <li key={k} className="flex justify-between text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">{l}</span>
-                  <span className="num">{fees.data ? `${fees.data[k]} sat/vB` : "…"}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {fees.data && <p className="mt-4 text-xs text-slate-500">Source: {fees.data.source}</p>}
-        </section>
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        {SHORTCUTS.map(({ to, icon: Icon, title, text }) => (
+          <Link key={to} to={to} className="group">
+            <Card className="h-full transition group-hover:border-btc/50">
+              <Icon size={18} className="text-btc" aria-hidden />
+              <p className="mt-2 font-medium">{title}</p>
+              <p className="text-xs text-muted">{text}</p>
+            </Card>
+          </Link>
+        ))}
       </div>
     </div>
   );

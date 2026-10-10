@@ -4,6 +4,8 @@
 "The **honest** Bitcoin copilot for Indian beginners": real data, explained with sources and confidence levels, plus risk-free practice. Most apps either sell trading or dump raw data — few teach while showing evidence.
 
 ## Competitors (landscape)
+
+_Based on general product knowledge, not fresh market research: verify current offerings before using this in a pitch._
 | Product | Strength | Gap we exploit |
 |---|---|---|
 | CoinGecko / CoinMarketCap | Prices, breadth | No personal guidance, no "why did it move" |
@@ -21,8 +23,8 @@
 5. **Scam dojo**: interactive fake DMs/websites — spot the scam, earn badges. Highly shareable, India-relevant.
 6. **INR-first**: ₹ everywhere, lakh/crore formatting, Indian tax-awareness notes (education only).
 
-## MVP order (≈6–8 weeks at 2–3 h/day)
-Dashboard ✅ → Auth → Charts + Tx Detective → AI Assistant → Virtual Portfolio → Alerts → Academy/Admin.
+## MVP status
+All core modules are implemented (see README). Next: deploy, add the AI key, run the validation experiments below, then iterate on the 1–2 features users actually return for.
 
 ## Free stack
 Vercel (client) · Render (API) · MongoDB Atlas M0 · CoinGecko public API · mempool.space · AI via a free tier or credits · email alerts via Resend/Brevo free tier · analytics via Umami/PostHog free tier.
