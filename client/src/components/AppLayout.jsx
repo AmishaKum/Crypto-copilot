@@ -6,6 +6,7 @@ import {
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "../context/AuthContext";
+import { useApi } from "../lib/useApi";
 import { cx } from "./ui";
 import { FullPageLoader } from "./RouteGuards";
 
@@ -20,13 +21,14 @@ export const APP_NAV = [
   { to: "/app/settings", label: "Settings", icon: Settings },
 ];
 
-function NavItems({ isAdmin }) {
+function NavItems({ isAdmin, unread }) {
   const items = isAdmin ? [...APP_NAV, { to: "/app/admin", label: "Admin", icon: BarChart3 }] : APP_NAV;
   return items.map(({ to, label, icon: Icon, end }) => (
     <NavLink key={to} to={to} end={end}
       className={({ isActive }) => cx("flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition",
         isActive ? "bg-btc/10 font-medium text-btc-deep dark:text-btc" : "text-muted hover:bg-slate-500/5 hover:text-ink")}>
       <Icon size={17} aria-hidden /> {label}
+      {to === "/app/alerts" && unread > 0 && <span className="ml-auto rounded-full bg-btc px-1.5 text-[10px] font-semibold text-navy-950" aria-label={`${unread} unread alerts`}>{unread > 9 ? "9+" : unread}</span>}
     </NavLink>
   ));
 }
@@ -34,6 +36,7 @@ function NavItems({ isAdmin }) {
 export default function AppLayout() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const unread = useApi("/alerts/unread", { refreshMs: 60_000 }).data?.unread ?? 0;
   const location = useLocation();
   const navigate = useNavigate();
   useEffect(() => setOpen(false), [location.pathname]);
@@ -53,7 +56,7 @@ export default function AppLayout() {
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
       <aside className="sticky top-0 hidden h-screen flex-col border-r border-line bg-surface lg:flex">
         <div className="flex items-center justify-between px-5 py-4"><Logo to="/app" /></div>
-        <nav aria-label="App" className="flex-1 space-y-0.5 overflow-y-auto px-3"><NavItems isAdmin={user.role === "admin"} /></nav>
+        <nav aria-label="App" className="flex-1 space-y-0.5 overflow-y-auto px-3"><NavItems isAdmin={user.role === "admin"} unread={unread} /></nav>
         <div className="flex items-center justify-between px-6 pb-2 text-xs text-muted">Theme <ThemeToggle /></div>
         {userBox}
       </aside>
@@ -73,7 +76,7 @@ export default function AppLayout() {
               <Logo to="/app" />
               <button onClick={() => setOpen(false)} aria-label="Close menu" className="p-1"><X size={20} /></button>
             </div>
-            <nav aria-label="App" className="flex-1 space-y-0.5 overflow-y-auto px-3"><NavItems isAdmin={user.role === "admin"} /></nav>
+            <nav aria-label="App" className="flex-1 space-y-0.5 overflow-y-auto px-3"><NavItems isAdmin={user.role === "admin"} unread={unread} /></nav>
             {userBox}
           </div>
         </div>

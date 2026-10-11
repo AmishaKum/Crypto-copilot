@@ -68,6 +68,7 @@ export const askSchema = z.object({
   message: z.string().trim().min(1, "is required").max(1000, "must be under 1000 characters"),
   history: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(4000) })).max(8).default([]),
   includePortfolio: z.boolean().default(false),
+  txid: z.string().regex(/^[0-9a-fA-F]{64}$/, "must be a 64-character transaction ID").optional(),
 });
 
 export const quizSchema = z.object({ answers: z.array(z.number().int().min(0).max(10)).max(20) });

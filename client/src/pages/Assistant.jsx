@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, ChevronDown, Send, ShieldAlert, Sparkles, User } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Bot, ChevronDown, Send, ShieldAlert, Sparkles, User, X } from "lucide-react";
 import { useApi } from "../lib/useApi";
 import { api } from "../lib/api";
 import { timeAgo } from "../lib/format";
@@ -55,7 +56,10 @@ export default function Assistant() {
   const { user } = useAuth();
   const status = useApi("/assistant/status");
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
+  const [params, setParams] = useSearchParams();
+  const txParam = params.get("tx");
+  const txid = txParam && /^[0-9a-fA-F]{64}$/.test(txParam) ? txParam : null;
+  const [input, setInput] = useState(txid ? "Explain this transaction in simple terms. Was the fee reasonable?" : "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const endRef = useRef(null);
@@ -70,7 +74,7 @@ export default function Assistant() {
     setMessages((m) => [...m, { role: "user", content: message }]);
     setBusy(true);
     try {
-      const r = await api("/assistant/chat", { body: { message, history, includePortfolio: !!user.preferences?.aiIncludePortfolio } });
+      const r = await api("/assistant/chat", { body: { message, history, includePortfolio: !!user.preferences?.aiIncludePortfolio, ...(txid && { txid }) } });
       setMessages((m) => [...m, { role: "assistant", content: r.answer, meta: r }]);
     } catch (e) {
       setError(e);
@@ -117,6 +121,13 @@ export default function Assistant() {
             <div ref={endRef} />
           </div>
           <div className="border-t border-line p-3">
+            {txid && (
+              <p className="mb-2 flex items-center gap-2 text-xs text-muted">
+                <Badge tone="btc">Transaction context</Badge>
+                <span className="num truncate">{txid.slice(0, 16)}…</span> verified details are sent as evidence
+                <button onClick={() => setParams({})} aria-label="Remove transaction context" className="ml-auto p-1 hover:text-ink"><X size={12} /></button>
+              </p>
+            )}
             {error && <div className="mb-2">{error.code === "SECRET_DETECTED"
               ? <p role="alert" className="flex items-start gap-2 rounded-xl bg-rose-500/10 p-3 text-sm text-rose-700 dark:text-rose-300"><ShieldAlert size={16} className="mt-0.5 shrink-0" />{error.message}</p>
               : <ErrorState error={error} compact />}</div>}

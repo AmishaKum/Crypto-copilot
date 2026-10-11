@@ -56,6 +56,7 @@ r.get("/alerts", ...authed, alerts.list);
 r.post("/alerts", ...authed, validate(s.alertSchema), alerts.create);
 r.patch("/alerts/:id", ...authed, validate(s.idParamSchema, "params"), validate(s.alertUpdateSchema), alerts.update);
 r.delete("/alerts/:id", ...authed, validate(s.idParamSchema, "params"), alerts.remove);
+r.get("/alerts/unread", ...authed, alerts.unreadCount);
 r.post("/alerts/check", ...authed, alerts.checkNow);
 r.post("/alerts/events/read", ...authed, alerts.markRead);
 

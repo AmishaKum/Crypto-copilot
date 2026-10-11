@@ -17,6 +17,9 @@ export async function create(req, res) {
   if ((await Alert.countDocuments({ user: req.user._id })) >= MAX_ALERTS) {
     throw new HttpError(400, `You can have up to ${MAX_ALERTS} alerts.`, "LIMIT");
   }
+  const { kind, threshold, currency } = req.body;
+  const dupe = await Alert.exists({ user: req.user._id, kind, threshold, ...(kind.startsWith("price") && { currency }) });
+  if (dupe) throw new HttpError(409, "You already have an identical alert.", "DUPLICATE");
   const alert = await Alert.create({ ...req.body, user: req.user._id });
   res.status(201).json({ alert });
 }
@@ -39,6 +42,10 @@ export async function remove(req, res) {
 export async function checkNow(req, res) {
   const result = await evaluateAlerts(req.user._id);
   res.json(result);
+}
+
+export async function unreadCount(req, res) {
+  res.json({ unread: await AlertEvent.countDocuments({ user: req.user._id, read: false }) });
 }
 
 export async function markRead(req, res) {

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Boxes, CheckCircle2, Clock, ExternalLink, HelpCircle, Search } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Boxes, CheckCircle2, Clock, ExternalLink, HelpCircle, Search, Sparkles } from "lucide-react";
 import { useApi } from "../lib/useApi";
-import { num, timeAgo } from "../lib/format";
+import { money, num, timeAgo } from "../lib/format";
+import { useCurrency } from "../context/AuthContext";
 import { Badge, Button, Card, CardHeader, EmptyState, ErrorState, Input, PageHeader, Skeleton, SourceTag } from "../components/ui";
 
 const HEX64 = /^[0-9a-fA-F]{64}$/;
@@ -26,8 +27,21 @@ function Row({ k, v, help }) {
   );
 }
 
+/** Interpretation of the fee rate against today's recommended rates (labelled as interpretation in the UI). */
+function feeVerdict(rate, fees) {
+  if (rate == null || !fees) return null;
+  if (rate >= fees.fastest * 1.5) return `paid well above today's next-block rate (${fees.fastest} sat/vB). Fees may have been higher when it was sent, or the sender prioritised speed.`;
+  if (rate >= fees.halfHour) return `is in line with today's fast confirmation rates (${fees.halfHour}–${fees.fastest} sat/vB).`;
+  if (rate >= fees.economy) return `is between today's economy (${fees.economy}) and fast (${fees.fastest}) rates.`;
+  return `is below today's economy rate (${fees.economy} sat/vB). If unconfirmed, it may wait a long time.`;
+}
+
 function TxResult({ txid }) {
   const { data: tx, error, loading, reload } = useApi(`/explorer/tx/${txid}`);
+  const snap = useApi("/market/snapshot");
+  const fees = useApi("/market/fees");
+  const [currency] = useCurrency();
+  const navigate = useNavigate();
   if (loading) return <Skeleton className="h-72" />;
   if (error) return <ErrorState error={error.status === 404 ? "No transaction with this ID was found on Bitcoin mainnet. Check for typos, or it may not have been broadcast." : error} onRetry={error.status === 404 ? null : reload} />;
   const conf = tx.confirmations;
@@ -43,7 +57,7 @@ function TxResult({ txid }) {
         <dl className="mt-4 divide-y divide-line">
           <Row k="Block" v={tx.blockHeight != null ? `#${num(tx.blockHeight)}` : "Not yet in a block"} />
           <Row k="Time" v={tx.blockTime ? `${new Date(tx.blockTime).toLocaleString()} (${timeAgo(tx.blockTime)})` : "—"} />
-          <Row k="Fee" v={sats(tx.feeSats)} />
+          <Row k="Fee" v={<>{sats(tx.feeSats)}{snap.data && tx.feeSats != null && <span className="block text-xs text-muted">≈ {money((tx.feeSats / 1e8) * snap.data[currency.toLowerCase()].price, currency, { decimals: 2 })} at today's price</span>}</>} />
           <Row k="Fee rate" v={tx.feeRate != null ? `${tx.feeRate} sat/vB` : "—"} />
           <Row k="Virtual size" v={`${num(tx.vsize)} vB`} />
           <Row k="Total output" v={`${sats(tx.totalOutputSats)} (${(tx.totalOutputSats / 1e8).toFixed(8)} BTC)`} />
@@ -58,7 +72,9 @@ function TxResult({ txid }) {
             : "It's waiting in the mempool. Confirmation time depends on its fee rate compared with other pending transactions."}</li>
           <li>It spends {tx.inputCount} input{tx.inputCount === 1 ? "" : "s"} and creates {tx.outputCount} output{tx.outputCount === 1 ? "" : "s"}. {tx.outputCount === 2 && "Two outputs often means one payment plus change, but that can't be known for certain."}</li>
           {tx.inputs[0]?.coinbase && <li>This is a coinbase transaction: newly created bitcoin paid to a miner.</li>}
+          {!tx.inputs[0]?.coinbase && feeVerdict(tx.feeRate, fees.data) && <li>Its fee rate of {tx.feeRate} sat/vB {feeVerdict(tx.feeRate, fees.data)}</li>}
         </ul>
+        <Button variant="ghost" size="sm" className="mt-4 w-full" onClick={() => navigate(`/app/assistant?tx=${tx.txid}`)}><Sparkles size={14} /> Ask the AI about this transaction</Button>
       </Card>
       <Card className="lg:col-span-3">
         <div className="grid gap-6 md:grid-cols-2">

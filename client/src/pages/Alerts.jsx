@@ -26,7 +26,7 @@ export default function Alerts() {
     if (!(Number(form.threshold) > 0)) return setMsg({ error: "Enter a threshold greater than 0." });
     setBusy(true);
     await act(() => api("/alerts", { body: { ...form, threshold: Number(form.threshold) } }));
-    setForm({ ...form, threshold: "" });
+    setForm((f) => ({ ...f, threshold: "" })); // functional update: keep edits made while saving
     setBusy(false);
   }
   async function checkNow() {

@@ -143,6 +143,8 @@ describe("alerts", () => {
     const created = await agent.post("/api/alerts").set(H).send({ kind: "price_above", threshold: 55_000, currency: "USD" });
     expect(created.status).toBe(201);
     const id = created.body.alert._id;
+    const dupe = await agent.post("/api/alerts").set(H).send({ kind: "price_above", threshold: 55_000, currency: "USD" });
+    expect(dupe.status).toBe(409);
 
     mockUpstream({ "/coins/bitcoin?": coingeckoCoin(50_000), "/v1/fees": feesBody });
     expect((await evaluateAlerts()).triggered).toBe(0);
@@ -243,5 +245,35 @@ describe("AI assistant", () => {
     } finally {
       env.aiApiKey = "";
     }
+  });
+});
+
+describe("AI transaction context and unread alerts", () => {
+  it("adds verified transaction facts to the AI evidence", async () => {
+    Object.assign(env, { aiApiKey: "test-key", aiProvider: "gemini" });
+    try {
+      const { agent } = await loginAgent();
+      const txid = "a".repeat(64);
+      let prompt;
+      mockUpstream({
+        "/coins/bitcoin?": coingeckoCoin(), "/v1/fees": feesBody, "/blocks/tip/height": 800_004,
+        [`/tx/${txid}`]: { txid, fee: 1410, weight: 564, size: 222, status: { confirmed: true, block_height: 800_000, block_time: 1 }, vin: [{ prevout: { value: 1 } }], vout: [{ value: 1 }] },
+        generativelanguage: (url, init) => { prompt = init.body; return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: "ok" }] } }] }) }; },
+      });
+      const r = await agent.post("/api/assistant/chat").set(H).send({ message: "Explain this transaction", txid });
+      expect(r.status).toBe(200);
+      expect(r.body.evidence.some((e) => e.label.startsWith("Transaction"))).toBe(true);
+      expect(prompt).toMatch(/5 confirmations/);
+      expect((await agent.post("/api/assistant/chat").set(H).send({ message: "x", txid: "bad" })).status).toBe(400);
+    } finally { env.aiApiKey = ""; }
+  });
+  it("counts unread alert events", async () => {
+    const { agent } = await loginAgent();
+    await agent.post("/api/alerts").set(H).send({ kind: "fee_below", threshold: 25 });
+    mockUpstream({ "/v1/fees": feesBody });
+    await agent.post("/api/alerts/check").set(H);
+    expect((await agent.get("/api/alerts/unread")).body.unread).toBe(1);
+    await agent.post("/api/alerts/events/read").set(H);
+    expect((await agent.get("/api/alerts/unread")).body.unread).toBe(0);
   });
 });

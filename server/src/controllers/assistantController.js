@@ -6,7 +6,7 @@ import { centsToUsd, satsToBtc } from "../utils/money.js";
 export const status = (req, res) => res.json(aiStatus());
 
 export async function chat(req, res) {
-  const { message, includePortfolio } = req.body;
+  const { message, includePortfolio, txid } = req.body;
   // Providers require the conversation to start with a user turn.
   const history = req.body.history.slice(req.body.history.findIndex((m) => m.role === "user") >>> 0);
   let portfolioSummary;
@@ -22,5 +22,5 @@ export async function chat(req, res) {
       };
     }
   }
-  res.json(await ask({ message, history: history.length && history[0].role === "user" ? history : [], portfolioSummary }));
+  res.json(await ask({ message, history: history.length && history[0].role === "user" ? history : [], portfolioSummary, txid }));
 }
