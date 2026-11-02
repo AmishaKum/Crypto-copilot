@@ -1,0 +1,35 @@
+---
+title: "UML Sequence Diagram — AI Assistant Question"
+---
+sequenceDiagram
+  autonumber
+  actor U as User
+  participant FE as React Client
+  participant API as Express API
+  participant AS as AssistantService
+  participant MS as Market/Explorer Services
+  participant DB as MongoDB
+  participant AI as AI Provider
+
+  U->>FE: Type question (optional txid context)
+  FE->>API: POST /api/assistant/chat {message, history, txid?}
+  API->>API: auth, CSRF, Zod (≤1000 chars), 20/hour limit
+  API->>AS: ask()
+  AS->>AS: configured? / seed-phrase or private-key check / daily cap
+  alt not configured or secret detected or limit reached
+    AS-->>FE: 503 / 400 with clear message
+  end
+  opt user opted in to share portfolio
+    API->>DB: read Portfolio (aggregate numbers only)
+  end
+  AS->>MS: price, 24h stats, fees, transaction (if txid)
+  MS-->>AS: evidence with source + timestamp, missing items
+  AS->>AI: system rules + DATA block + question
+  alt provider error / quota
+    AI-->>AS: 429 / 401 / 5xx
+    AS-->>FE: 503 friendly error
+  else success
+    AI-->>AS: answer text
+    AS-->>FE: {answer, evidence[], missing[], dataQuality, model}
+    FE-->>U: Answer + evidence panel + data-quality badge
+  end

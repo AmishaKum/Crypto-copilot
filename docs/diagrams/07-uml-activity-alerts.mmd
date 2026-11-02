@@ -1,0 +1,22 @@
+---
+title: "UML Activity Diagram — Alert Evaluation (every ALERTS_INTERVAL_MS or 'Check now')"
+---
+flowchart TD
+  S([Start]) --> Q[Load enabled alerts]
+  Q --> E{Any alerts?}
+  E -- No --> X([End])
+  E -- Yes --> F[Fetch BTC snapshot and/or fees<br/>once, via cache]
+  F --> L[For each alert]
+  L --> V{Data available<br/>and fresh?}
+  V -- No --> N[Skip: leave state unchanged]
+  V -- Yes --> C{Condition met?<br/>above: value ≥ threshold<br/>below: value ≤ threshold}
+  C -- "Yes, was not met" --> T[Set conditionMet = true<br/>triggerCount + 1]
+  T --> EV[Create AlertEvent<br/>observed value + source]
+  C -- "Yes, already met" --> N
+  C -- "No, was met" --> R[Re-arm: conditionMet = false]
+  C -- "No, was not met" --> N
+  EV --> M{More alerts?}
+  R --> M
+  N --> M
+  M -- Yes --> L
+  M -- No --> X

@@ -1,0 +1,71 @@
+digraph DFD1 {
+  label="DFD Level 1 — Crypto Copilot Processes and Data Stores\n "; labelloc=t; fontsize=22; fontname="Helvetica-Bold";
+  rankdir=LR; nodesep=0.45; ranksep=1.6; bgcolor=white; pad=0.4; splines=true; newrank=true;
+  node [fontname="Helvetica", fontsize=12];
+  edge [fontname="Helvetica", fontsize=9.5, color="#64748b", fontcolor="#1e293b", arrowsize=0.7];
+
+  node [shape=box, style=filled, fillcolor="#eef2ff", color="#334155", penwidth=1.5, width=1.5];
+  User [label="User", height=6];
+  Admin [label="Admin"];
+  CG [label="CoinGecko"]; MP [label="mempool.space"]; AI [label="AI Provider"];
+
+  node [shape=circle, style=filled, fillcolor="#fff4e5", color="#d97706", penwidth=2, width=1.35, fixedsize=true, fontsize=11];
+  P1 [label="1.0\nAuthenticate &\nManage Account"];
+  P2 [label="2.0\nFetch Market\nData"];
+  P3 [label="3.0\nExplore\nBlockchain"];
+  P4 [label="4.0\nSimulate\nTrades"];
+  P5 [label="5.0\nSimulate\nRisk"];
+  P6 [label="6.0\nEvaluate\nAlerts"];
+  P7 [label="7.0\nAnswer AI\nQuestions"];
+  P8 [label="8.0\nRun\nAcademy"];
+  P9 [label="9.0\nReport\nAdmin Stats"];
+
+  node [shape=record, style=filled, fillcolor="#ecfdf5", color="#047857", penwidth=1.5, fixedsize=false, width=2, fontsize=11];
+  D1 [label="D1 | Users"];
+  D2 [label="D2 | Portfolios"];
+  D3 [label="D3 | SimulatedTrades"];
+  D4 [label="D4 | Alerts"];
+  D5 [label="D5 | AlertEvents"];
+  D6 [label="D6 | LearningProgress"];
+  D7 [label="D7 | API Cache (memory)"];
+
+  { rank=same; P1; P2; P3; P4; P5; P6; P7; P8; }
+  { rank=same; D1; D2; D3; D4; D5; D6; D7; }
+  { rank=same; CG; MP; AI; Admin; }
+
+  // User <-> processes
+  User -> P1 [label="credentials, profile", dir=both];
+  User -> P2 [label="currency / range ↔ prices, chart, fees", dir=both];
+  User -> P3 [label="txid / block ↔ details", dir=both];
+  User -> P4 [label="orders ↔ fills, P&L", dir=both];
+  User -> P5 [label="scenarios ↔ results", dir=both];
+  User -> P6 [label="alert rules ↔ alerts", dir=both];
+  User -> P7 [label="question ↔ answer + evidence", dir=both];
+  User -> P8 [label="answers ↔ score", dir=both];
+
+  // processes <-> stores
+  P1 -> D1 [dir=both, label="user record"];
+  P2 -> D7 [dir=both, label="cached data"];
+  P3 -> D7 [dir=both];
+  P4 -> D2 [dir=both, label="balances"];
+  P4 -> D3 [label="trade record"];
+  P5 -> D2 [dir=back, label="holdings"];
+  P6 -> D4 [dir=both, label="rules, state"];
+  P6 -> D5 [label="triggered event"];
+  P7 -> D2 [dir=back, style=dashed, label="opt-in totals"];
+  P8 -> D6 [dir=both, label="progress"];
+  D1 -> P9 [style=dotted, arrowhead=none]; D3 -> P9 [style=dotted, arrowhead=none];
+  D4 -> P9 [style=dotted, arrowhead=none]; D6 -> P9 [style=dotted, label="counts"];
+
+  // internal flows
+  P2 -> P4 [label="live price", constraint=false, color="#d97706"];
+  P2 -> P6 [label="price & fees", constraint=false, color="#d97706"];
+  P2 -> P7 [label="market evidence", constraint=false, color="#d97706"];
+  P3 -> P7 [label="tx evidence", constraint=false, color="#d97706"];
+
+  // externals
+  D7 -> CG [dir=both, label="market data"];
+  D7 -> MP [dir=both, label="tx, blocks, fees"];
+  P7 -> AI [dir=both, label="prompt ↔ answer", constraint=false];
+  P9 -> Admin [dir=both, label="request ↔ stats"];
+}

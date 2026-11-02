@@ -1,0 +1,27 @@
+digraph DFD0 {
+  label="DFD Level 0 — Context Diagram: Crypto Copilot\n "; labelloc=t; fontsize=22; fontname="Helvetica-Bold";
+  rankdir=LR; nodesep=0.7; ranksep=2.2; bgcolor=white; pad=0.4;
+  node [fontname="Helvetica", fontsize=13];
+  edge [fontname="Helvetica", fontsize=10.5, color="#475569", fontcolor="#1e293b"];
+
+  User  [shape=box, style="filled", fillcolor="#eef2ff", color="#334155", penwidth=1.5, label="User\n(Learner / Trader)", width=1.8, height=0.9];
+  Admin [shape=box, style="filled", fillcolor="#eef2ff", color="#334155", penwidth=1.5, label="Admin", width=1.8];
+  CG    [shape=box, style="filled", fillcolor="#eef2ff", color="#334155", penwidth=1.5, label="CoinGecko API\n(market data)", width=2];
+  MP    [shape=box, style="filled", fillcolor="#eef2ff", color="#334155", penwidth=1.5, label="mempool.space API\n(blockchain data)", width=2];
+  AI    [shape=box, style="filled", fillcolor="#eef2ff", color="#334155", penwidth=1.5, label="AI Provider\n(Gemini / Anthropic)", width=2];
+  SYS   [shape=circle, style="filled", fillcolor="#fff4e5", color="#d97706", penwidth=3, label="0\nCrypto Copilot\nSystem", fontsize=15, width=2.2, fixedsize=true];
+
+  { rank=same; User; Admin; }
+  { rank=same; CG; MP; AI; }
+
+  User -> SYS  [label="credentials, preferences, watchlist,\lsimulated trade orders, alert rules,\ltxid / block queries, AI questions,\lquiz answers\l"];
+  SYS  -> User [label="session, prices & charts, tx / block details,\lportfolio & P&L, risk results, alerts,\lAI answers + evidence, quiz scores, data export\l"];
+  Admin -> SYS [label="admin login"];
+  SYS -> Admin [label="aggregate statistics"];
+  SYS -> CG [label="price / chart requests"];
+  CG -> SYS [label="BTC price, 24h stats,\nhistory, coin prices"];
+  SYS -> MP [label="tx / block / fee requests"];
+  MP -> SYS [label="transactions, blocks,\nfee estimates"];
+  SYS -> AI [label="question + live evidence\n(no personal data)"];
+  AI -> SYS [label="generated answer"];
+}

@@ -1,0 +1,33 @@
+---
+title: "UML Component / Deployment Diagram — Crypto Copilot"
+---
+flowchart LR
+  subgraph Browser["User's Browser"]
+    direction TB
+    R["React SPA (Vite)<br/>Pages · Components · AuthContext · ThemeContext<br/>api client · Recharts"]
+  end
+  subgraph Vercel["Vercel (static hosting)"]
+    ST["Built client assets"]
+  end
+  subgraph Render["Render (Node.js Web Service)"]
+    direction TB
+    EX["Express 5 app<br/>helmet · CORS · rate limits · CSRF"]
+    RT["Routes → Controllers"]
+    SV["Services<br/>market · explorer · portfolio · risk<br/>alerts (scheduler) · ai (providers)"]
+    MW["Middleware<br/>auth (JWT cookie) · Zod validation · errors"]
+    CA["In-memory cache"]
+    EX --> MW --> RT --> SV --> CA
+  end
+  subgraph Atlas["MongoDB Atlas (M0)"]
+    DB[("users · portfolios · simulatedtrades<br/>alerts · alertevents · learningprogresses")]
+  end
+  CG["CoinGecko API"]
+  MP["mempool.space API"]
+  AIP["Gemini / Anthropic API"]
+
+  ST -- "HTTPS download" --> R
+  R -- "HTTPS JSON /api/*<br/>HttpOnly cookie" --> EX
+  SV -- "Mongoose" --> DB
+  SV -- "HTTPS" --> CG
+  SV -- "HTTPS" --> MP
+  SV -- "HTTPS (server-side key)" --> AIP

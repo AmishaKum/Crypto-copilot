@@ -1,0 +1,89 @@
+---
+title: "Entity Relationship Diagram — Crypto Copilot (MongoDB collections)"
+---
+erDiagram
+  USER ||--o| PORTFOLIO : "owns (1 : 0..1)"
+  USER ||--o{ SIMULATED_TRADE : "places"
+  USER ||--o{ ALERT : "configures"
+  USER ||--o{ ALERT_EVENT : "receives"
+  ALERT ||--o{ ALERT_EVENT : "triggers"
+  USER ||--o{ LEARNING_PROGRESS : "tracks"
+  USER ||--o{ WATCHLIST_ITEM : "watches (embedded array)"
+
+  USER {
+    ObjectId _id PK
+    string name
+    string email UK "lowercase, unique index"
+    string passwordHash "bcrypt, never returned"
+    string role "user | admin"
+    int tokenVersion "session invalidation"
+    string preferences_currency "USD | INR"
+    bool preferences_aiIncludePortfolio
+    date lastLoginAt
+    date createdAt
+    date updatedAt
+  }
+  WATCHLIST_ITEM {
+    string coinId "e.g. bitcoin (embedded in USER.watchlist)"
+  }
+  PORTFOLIO {
+    ObjectId _id PK
+    ObjectId user FK,UK "unique index"
+    int startingCashCents
+    int cashCents
+    int btcSats
+    int costBasisCents
+    int realizedPnlCents
+    int feesPaidCents
+    int tradeCount
+    date createdAt
+    date updatedAt
+  }
+  SIMULATED_TRADE {
+    ObjectId _id PK
+    ObjectId user FK "index (user, createdAt)"
+    string side "buy | sell"
+    int sats
+    int priceCents
+    int notionalCents
+    int feeCents
+    int realizedPnlCents
+    int cashAfterCents
+    int btcAfterSats
+    string priceSource
+    date priceAsOf
+    date createdAt
+  }
+  ALERT {
+    ObjectId _id PK
+    ObjectId user FK "index"
+    string kind "price_above | price_below | fee_above | fee_below"
+    string currency "USD | INR"
+    float threshold
+    bool enabled "index"
+    bool conditionMet
+    date lastTriggeredAt
+    int triggerCount
+    date createdAt
+  }
+  ALERT_EVENT {
+    ObjectId _id PK
+    ObjectId user FK "index (user, createdAt)"
+    ObjectId alert FK
+    string kind
+    string currency
+    float threshold
+    float observedValue
+    string source
+    bool read
+    date createdAt
+  }
+  LEARNING_PROGRESS {
+    ObjectId _id PK
+    ObjectId user FK "unique (user, lessonId)"
+    string lessonId
+    int bestScore "percent"
+    int attempts
+    bool completed
+    date completedAt
+  }

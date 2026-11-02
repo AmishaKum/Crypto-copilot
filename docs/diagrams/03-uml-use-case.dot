@@ -1,0 +1,49 @@
+graph UC {
+  label="UML Use Case Diagram — Crypto Copilot\n "; labelloc=t; fontsize=22; fontname="Helvetica-Bold";
+  rankdir=LR; nodesep=0.25; ranksep=1.4; bgcolor=white; pad=0.4;
+  node [fontname="Helvetica", fontsize=12];
+  edge [color="#475569", fontname="Helvetica", fontsize=10];
+
+  node [shape=none, image="", fontsize=13];
+  Visitor [label="🧍\nVisitor"]; User [label="🧍\nRegistered User"]; Admin [label="🧍\nAdmin"];
+
+  subgraph cluster_sys {
+    label="Crypto Copilot System"; fontsize=15; fontname="Helvetica-Bold"; style="rounded"; color="#64748b"; bgcolor="#f8fafc";
+    node [shape=ellipse, style=filled, fillcolor="#fff4e5", color="#d97706", width=2.9];
+    UC1 [label="View landing & live snapshot"];
+    UC2 [label="Register"];
+    UC3 [label="Log in / Log out"];
+    UC18 [label="Change theme (dark / light)"];
+    UC4 [label="View market dashboard"];
+    UC5 [label="Switch USD / INR & chart range"];
+    UC6 [label="Manage watchlist"];
+    UC7 [label="Look up transaction / block"];
+    UC8 [label="Ask AI assistant"];
+    UC9 [label="Simulate buy / sell"];
+    UC10 [label="Reset virtual portfolio"];
+    UC11 [label="Run risk scenarios"];
+    UC12 [label="Manage alerts"];
+    UC13 [label="View triggered alerts"];
+    UC14 [label="Take lessons & quizzes"];
+    UC15 [label="Manage profile & password"];
+    UC16 [label="Export / delete my data"];
+    UC17 [label="View admin statistics"];
+  }
+
+  node [shape=box, style=filled, fillcolor="#eef2ff", color="#334155"];
+  CG [label="«system»\nCoinGecko"]; MP [label="«system»\nmempool.space"]; AIP [label="«system»\nAI Provider"];
+
+  Visitor -- {UC1 UC2 UC3 UC18};
+  User -- {UC3 UC4 UC6 UC7 UC8 UC9 UC10 UC11 UC12 UC13 UC14 UC15 UC16 UC18};
+  Admin -- UC17;
+  Admin -- User [style=dashed, label="generalizes (is a)", dir=forward, arrowhead=onormal, constraint=false];
+
+  edge [style=dashed, dir=forward, arrowhead=vee, fontcolor="#7c2d12"];
+  UC4 -- UC5 [label="«include»"];
+  UC9 -- UC4 [label="«include» live price"];
+  UC8 -- UC7 [label="«extend» tx context"];
+  UC11 -- UC9 [label="«extend» use my portfolio"];
+
+  edge [style=solid, dir=none, color="#94a3b8"];
+  UC4 -- CG; UC9 -- CG; UC7 -- MP; UC8 -- AIP;
+}

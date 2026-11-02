@@ -1,0 +1,45 @@
+---
+title: "UML Sequence Diagram — Simulated Buy/Sell Trade"
+---
+sequenceDiagram
+  autonumber
+  actor U as User
+  participant FE as React Client
+  participant API as Express API
+  participant MW as Auth + CSRF + Zod
+  participant PS as PortfolioService
+  participant MS as MarketService
+  participant C as Cache
+  participant CG as CoinGecko
+  participant DB as MongoDB
+
+  U->>FE: Enter amount, click "Simulate buy"
+  FE->>API: POST /api/portfolio/trades {side, usd|btc}<br/>cookie + X-Requested-With
+  API->>MW: verify JWT cookie, CSRF header, validate body
+  alt invalid / not logged in
+    MW-->>FE: 400 / 401 / 403 error
+  end
+  MW->>PS: executeTrade(userId, order)
+  PS->>MS: getBtcSnapshot()
+  MS->>C: cached("btc-snapshot", 60s)
+  alt cache miss
+    C->>CG: GET /coins/bitcoin
+    CG-->>C: market data
+  end
+  C-->>MS: price + freshness
+  MS-->>PS: priceCents
+  alt price unavailable or stale
+    PS-->>FE: 503 "trading paused"
+  end
+  loop up to 3 attempts (optimistic concurrency)
+    PS->>DB: read Portfolio
+    PS->>PS: computeTrade() — integer cents & sats,<br/>fee, average-cost P&L, balance checks
+    alt insufficient cash / BTC
+      PS-->>FE: 400 INSUFFICIENT_CASH / BTC
+    end
+    PS->>DB: findOneAndUpdate(only if unchanged, $inc balances)
+  end
+  PS->>DB: insert SimulatedTrade
+  PS-->>API: trade + updated portfolio
+  API-->>FE: 201 {trade, portfolio summary}
+  FE-->>U: "Simulated buy filled", refresh P&L and history

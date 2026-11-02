@@ -1,0 +1,135 @@
+---
+title: "UML Class Diagram — Domain Models and Services"
+---
+classDiagram
+  direction LR
+  class User {
+    +ObjectId _id
+    +String name
+    +String email «unique»
+    -String passwordHash
+    +String role : user | admin
+    +Number tokenVersion
+    +Preferences preferences
+    +String[] watchlist
+    +Date lastLoginAt
+    +toPublic() Object
+  }
+  class Preferences {
+    +String currency : USD | INR
+    +Boolean aiIncludePortfolio
+  }
+  class Portfolio {
+    +ObjectId user «unique»
+    +Number startingCashCents
+    +Number cashCents
+    +Number btcSats
+    +Number costBasisCents
+    +Number realizedPnlCents
+    +Number feesPaidCents
+    +Number tradeCount
+  }
+  class SimulatedTrade {
+    +ObjectId user
+    +String side : buy | sell
+    +Number sats
+    +Number priceCents
+    +Number notionalCents
+    +Number feeCents
+    +Number realizedPnlCents
+    +Number cashAfterCents
+    +Number btcAfterSats
+    +String priceSource
+    +Date priceAsOf
+  }
+  class Alert {
+    +ObjectId user
+    +String kind : price_above | price_below | fee_above | fee_below
+    +String currency
+    +Number threshold
+    +Boolean enabled
+    +Boolean conditionMet
+    +Date lastTriggeredAt
+    +Number triggerCount
+  }
+  class AlertEvent {
+    +ObjectId user
+    +ObjectId alert
+    +String kind
+    +Number threshold
+    +Number observedValue
+    +String source
+    +Boolean read
+  }
+  class LearningProgress {
+    +ObjectId user
+    +String lessonId
+    +Number bestScore
+    +Number attempts
+    +Boolean completed
+    +Date completedAt
+  }
+  class MarketService {
+    +getBtcSnapshot()
+    +getBtcChart(days, currency)
+    +getWatchPrices(ids)
+    +getFees()
+  }
+  class ExplorerService {
+    +getTransaction(txid)
+    +getBlock(heightOrHash)
+    +getRecentBlocks()
+  }
+  class PortfolioService {
+    +getOrCreatePortfolio(userId)
+    +computeTrade(state, order)
+    +executeTrade(userId, order)
+    +summarize(portfolio, priceCents)
+    +resetPortfolio(userId, startingUsd)
+  }
+  class RiskService {
+    +simulateRisk(priceUsd, portfolios, shocks)
+  }
+  class AlertService {
+    +isConditionMet(kind, threshold, value)
+    +evaluateAlerts(userId?)
+    +startAlertScheduler(intervalMs)
+  }
+  class AssistantService {
+    +aiStatus()
+    +looksLikeSecret(text)
+    +gatherEvidence(portfolio?, txid?)
+    +ask(message, history, ...)
+  }
+  class AIProvider {
+    <<interface>>
+    +defaultModel
+    +complete(apiKey, model, system, messages)
+  }
+  class GeminiProvider
+  class AnthropicProvider
+  class Cache {
+    +cached(key, ttlMs, fn)
+  }
+
+  User *-- Preferences
+  User "1" -- "0..1" Portfolio : owns
+  User "1" -- "0..*" SimulatedTrade : places
+  User "1" -- "0..*" Alert : configures
+  Alert "1" -- "0..*" AlertEvent : triggers
+  User "1" -- "0..*" AlertEvent : receives
+  User "1" -- "0..*" LearningProgress : tracks
+  PortfolioService ..> Portfolio
+  PortfolioService ..> SimulatedTrade
+  PortfolioService ..> MarketService : live price
+  AlertService ..> Alert
+  AlertService ..> AlertEvent
+  AlertService ..> MarketService
+  AssistantService ..> MarketService
+  AssistantService ..> ExplorerService
+  AssistantService ..> AIProvider
+  AIProvider <|.. GeminiProvider
+  AIProvider <|.. AnthropicProvider
+  MarketService ..> Cache
+  ExplorerService ..> Cache
+  RiskService ..> MarketService
