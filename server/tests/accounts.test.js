@@ -277,3 +277,23 @@ describe("AI transaction context and unread alerts", () => {
     expect((await agent.get("/api/alerts/unread")).body.unread).toBe(0);
   });
 });
+
+describe("Gemini retired model fallback", () => {
+  it("discovers a current model when the configured one returns 404", async () => {
+    Object.assign(env, { aiApiKey: "test-key", aiProvider: "gemini", aiModel: "gemini-old-flash" });
+    try {
+      const { agent } = await loginAgent();
+      const f = mockUpstream({
+        "/coins/bitcoin?": coingeckoCoin(), "/v1/fees": feesBody,
+        "gemini-old-flash:generateContent": [404, { error: { message: "not found" } }],
+        "/models?pageSize": { models: [{ name: "models/gemini-9.1-flash", supportedGenerationMethods: ["generateContent"] }] },
+        "gemini-9.1-flash:generateContent": { candidates: [{ content: { parts: [{ text: "Live answer" }] } }] },
+      });
+      const r = await agent.post("/api/assistant/chat").set(H).send({ message: "What is BTC doing?" });
+      expect(r.status).toBe(200);
+      expect(r.body.answer).toBe("Live answer");
+      expect(r.body.model).toBe("gemini-9.1-flash");
+      expect(f.mock.calls.some(([u]) => String(u).includes("/models?pageSize"))).toBe(true);
+    } finally { Object.assign(env, { aiApiKey: "", aiModel: "" }); }
+  });
+});

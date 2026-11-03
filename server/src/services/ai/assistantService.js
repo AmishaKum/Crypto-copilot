@@ -34,7 +34,7 @@ export function aiStatus() {
   return {
     configured: Boolean(env.aiApiKey && provider),
     provider: provider ? env.aiProvider : null,
-    model: provider ? env.aiModel || provider.defaultModel : null,
+    model: provider ? (provider.activeModel ? provider.activeModel(env.aiModel || provider.defaultModel) : env.aiModel || provider.defaultModel) : null,
   };
 }
 
@@ -103,7 +103,7 @@ export async function ask({ message, history, portfolioSummary, txid }) {
 
   const messages = [...history, { role: "user", content: `${dataBlock}\n\nQUESTION: ${message}` }];
   const provider = PROVIDERS[env.aiProvider];
-  const answer = await provider.complete({ apiKey: env.aiApiKey, model: status.model, system: SYSTEM, messages, maxTokens: 900 });
+  const answer = await provider.complete.call(provider, { apiKey: env.aiApiKey, model: status.model, system: SYSTEM, messages, maxTokens: 900 });
   if (!answer.trim()) throw new HttpError(502, "The AI provider returned an empty answer. Please try again.", "AI_ERROR");
-  return { answer, evidence, missing, dataQuality, provider: status.provider, model: status.model, generatedAt: new Date().toISOString() };
+  return { answer, evidence, missing, dataQuality, provider: status.provider, model: aiStatus().model, generatedAt: new Date().toISOString() };
 }

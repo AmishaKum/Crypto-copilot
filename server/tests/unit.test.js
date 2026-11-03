@@ -81,3 +81,14 @@ describe("quiz scoring", () => {
     expect(scoreQuiz(lesson, lesson.quiz.map(() => 9)).passed).toBe(false);
   });
 });
+
+describe("gemini model selection", async () => {
+  const { pickGeminiModel } = await import("../src/services/ai/providers.js");
+  const m = (name, methods = ["generateContent"]) => ({ name: `models/${name}`, supportedGenerationMethods: methods });
+  it("picks the newest stable flash text model", () => {
+    expect(pickGeminiModel([m("gemini-2.5-flash"), m("gemini-3.8-flash"), m("gemini-3.8-flash-lite"), m("gemini-3.9-flash-preview"), m("gemini-3.8-pro")]))
+      .toBe("gemini-3.9-flash-preview"); // newer version wins even if preview
+    expect(pickGeminiModel([m("gemini-3.8-flash"), m("gemini-3.8-flash-preview"), m("text-embedding-004", ["embedContent"])])).toBe("gemini-3.8-flash");
+    expect(pickGeminiModel([m("gemini-3.8-pro")])).toBe(null);
+  });
+});
