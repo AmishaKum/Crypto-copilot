@@ -297,3 +297,42 @@ describe("Gemini retired model fallback", () => {
     } finally { Object.assign(env, { aiApiKey: "", aiModel: "" }); }
   });
 });
+
+describe("Gemini overloaded fallback", () => {
+  it("retries, then answers with another Flash model when the main one returns 503", async () => {
+    const { PROVIDERS, resetGeminiState } = await import("../src/services/ai/providers.js");
+    resetGeminiState();
+    PROVIDERS.gemini.retryDelaysMs = [1, 1];
+    Object.assign(env, { aiApiKey: "test-key", aiProvider: "gemini", aiModel: "gemini-busy-flash" });
+    try {
+      const { agent } = await loginAgent();
+      const f = mockUpstream({
+        "/coins/bitcoin?": coingeckoCoin(), "/v1/fees": feesBody,
+        "gemini-busy-flash:generateContent": [503, { error: { status: "UNAVAILABLE" } }],
+        "/models?pageSize": { models: [
+          { name: "models/gemini-busy-flash", supportedGenerationMethods: ["generateContent"] },
+          { name: "models/gemini-9.1-flash", supportedGenerationMethods: ["generateContent"] },
+        ] },
+        "gemini-9.1-flash:generateContent": { candidates: [{ content: { parts: [{ text: "Backup answer" }] } }] },
+      });
+      const r = await agent.post("/api/assistant/chat").set(H).send({ message: "fees?" });
+      expect(r.status).toBe(200);
+      expect(r.body.answer).toBe("Backup answer");
+      expect(f.mock.calls.filter(([u]) => String(u).includes("gemini-busy-flash:generateContent")).length).toBe(3); // 1 try + 2 retries
+    } finally { Object.assign(env, { aiApiKey: "", aiModel: "" }); }
+  });
+  it("shows a clear message when every model is busy", async () => {
+    const { PROVIDERS, resetGeminiState } = await import("../src/services/ai/providers.js");
+    resetGeminiState();
+    PROVIDERS.gemini.retryDelaysMs = [1];
+    Object.assign(env, { aiApiKey: "test-key", aiProvider: "gemini", aiModel: "gemini-busy-flash" });
+    try {
+      const { agent } = await loginAgent();
+      mockUpstream({ "/coins/bitcoin?": coingeckoCoin(), "/v1/fees": feesBody, ":generateContent": [503, {}] });
+      const r = await agent.post("/api/assistant/chat").set(H).send({ message: "fees?" });
+      expect(r.status).toBe(503);
+      expect(r.body.code).toBe("AI_OVERLOADED");
+      expect(r.body.error).toMatch(/busy or temporarily unavailable/);
+    } finally { Object.assign(env, { aiApiKey: "", aiModel: "" }); }
+  });
+});
