@@ -15,7 +15,9 @@ Educational only: **no real money, no custody, no keys.**
 | AI assistant | Gemini or Anthropic (swappable). Sends live data with sources/timestamps, returns an answer + evidence list + data-quality badge, blocks seed phrases/private keys, per-user and daily limits |
 | Virtual portfolio | Simulated buy/sell at the server's live price, 0.10% simulated fee, average-cost P&L (realized/unrealized), history chart, confirmed reset |
 | Risk simulator | Price shocks (−99% … +500%) on one or two portfolios, concentration warning, calculations and assumptions shown |
-| Alerts | Price above/below (USD/INR) and fee above/below; fire once per crossing; in-app history |
+| Alerts | Price above/below (USD/INR) and fee above/below; fire once per crossing; in-app history and optional email |
+| Password reset | "Forgot password?" emails a single-use link that expires in 30 minutes |
+| Network card | Block height, halving countdown, block reward and mempool backlog |
 | Academy | 8 lessons incl. a Scam Dojo; server-scored quizzes with explanations and progress |
 | Admin | Aggregate platform stats for emails listed in `ADMIN_EMAILS` (no personal data) |
 | UX | Dark navy / Bitcoin-orange theme with light mode, responsive with a mobile menu, loading/empty/error/stale states, keyboard-accessible |
@@ -77,6 +79,10 @@ npm run build     # production build of the client
 ```
 The first server test run downloads a MongoDB binary (~100 MB) for `mongodb-memory-server`.
 
+### Email (optional)
+Set the `SMTP_*` variables in `server/.env` (Gmail App Password or Brevo free SMTP). Without them, emails, including
+password-reset links, are printed in the server terminal, so the features can still be tested locally.
+
 ## API overview
 
 Public: `GET /api/health`, `/api/market/{snapshot,fees,chart?days=&currency=,watch?ids=,coins}`, `/api/explorer/{tx/:txid,block/:heightOrHash,blocks}`, `POST /api/risk/simulate`, `GET /api/assistant/status`, `GET /api/academy/lessons[/:id]`.
@@ -106,7 +112,7 @@ concurrency so simultaneous trades can't overspend.
 
 ## Known limitations
 - Market and chain data depend on free public APIs (CoinGecko, mempool.space) which have undisclosed or changing rate limits; responses are cached (30 s–10 min) and stale data is labelled.
-- Alerts are in-app only and run only while the API process is up (no email/push yet).
+- Alerts are evaluated only while the API process is up (email delivery needs SMTP settings; no push notifications yet).
 - The virtual portfolio is BTC/USD only; INR is display-only for market data.
 - The AI assistant has no news feed, so it cannot confirm causes of price moves (it says so).
 - Tailwind CSS v3 has dev-only `npm audit` advisories in its file-watching dependencies (not shipped to users); fix by migrating to Tailwind v4.

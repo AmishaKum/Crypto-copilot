@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, Sparkles, Wallet } from "lucide-react";
 import { useApi } from "../lib/useApi";
@@ -7,6 +8,8 @@ import PriceHero from "../components/market/PriceHero";
 import PriceChart from "../components/market/PriceChart";
 import FeesCard from "../components/market/FeesCard";
 import Watchlist from "../components/market/Watchlist";
+import NetworkCard from "../components/market/NetworkCard";
+import { money } from "../lib/format";
 
 const SHORTCUTS = [
   { to: "/app/explorer", icon: Search, title: "Investigate a transaction", text: "Paste a txid to see fees and confirmations." },
@@ -19,6 +22,13 @@ export default function Dashboard() {
   const [currency, setCurrency] = useCurrency();
   const snapshot = useApi("/market/snapshot", { refreshMs: 60_000 });
   const fees = useApi("/market/fees", { refreshMs: 60_000 });
+  const live = snapshot.data?.[currency.toLowerCase()];
+
+  // Live price in the browser tab title while the dashboard is open.
+  useEffect(() => {
+    if (live?.price) document.title = `₿ ${money(live.price, currency)} ${live.change24hPct >= 0 ? "▲" : "▼"}${Math.abs(live.change24hPct ?? 0).toFixed(1)}% · Crypto Copilot`;
+    return () => { document.title = "Crypto Copilot"; };
+  }, [live?.price, live?.change24hPct, currency]);
 
   return (
     <div className="fade-in">
@@ -31,6 +41,7 @@ export default function Dashboard() {
         </div>
         <div className="space-y-4">
           <FeesCard fees={fees} />
+          <NetworkCard />
           <Watchlist currency={currency} />
         </div>
       </div>

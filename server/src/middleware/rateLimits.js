@@ -12,6 +12,16 @@ export const authLimiter = rateLimit({
   message: { error: "Too many attempts. Please wait 15 minutes and try again.", code: "RATE_LIMITED" },
 });
 
+// Separate counters so password-reset requests and test emails don't use up each other's limit.
+const emailLimit = () => rateLimit({
+  ...base,
+  windowMs: 60 * 60_000,
+  limit: 5,
+  message: { error: "Too many email requests. Please wait an hour and try again.", code: "RATE_LIMITED" },
+});
+export const forgotLimiter = emailLimit();
+export const testEmailLimiter = emailLimit();
+
 export const aiLimiter = rateLimit({
   ...base,
   windowMs: 60 * 60_000,

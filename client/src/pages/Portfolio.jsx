@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { History, RotateCcw, Wallet } from "lucide-react";
+import { Download, History, RotateCcw, Wallet } from "lucide-react";
 import { useApi } from "../lib/useApi";
 import { api } from "../lib/api";
 import { btc, cents, signedCents, money } from "../lib/format";
@@ -138,7 +138,12 @@ export default function Portfolio() {
                 ) : <EmptyState title="No history yet">Make a simulated trade to start tracking performance.</EmptyState>}
               </Card>
               <Card>
-                <CardHeader icon={History} title="Trade history" />
+                <CardHeader icon={History} title="Trade history"
+                  action={h.data?.trades?.length > 0 && (
+                    <a href={`${import.meta.env.VITE_API_URL || ""}/api/portfolio/trades.csv`} className="inline-flex items-center gap-1 text-xs font-medium text-btc hover:underline" download>
+                      <Download size={13} aria-hidden /> Download CSV
+                    </a>
+                  )} />
                 {h.error ? <ErrorState error={h.error} onRetry={h.reload} compact /> : !h.data?.trades?.length ? <EmptyState title="No trades yet">Your simulated buys and sells will appear here.</EmptyState> : (
                   <div className="-mx-5 overflow-x-auto px-5">
                     <table className="w-full min-w-[560px] text-sm">

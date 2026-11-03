@@ -7,6 +7,8 @@ import Landing from "./pages/Landing";
 import AuthPage from "./pages/AuthPage";
 import Legal from "./pages/Legal";
 import NotFound from "./pages/NotFound";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 // App pages are code-split so the public landing page loads fast.
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -27,6 +29,8 @@ export default function App() {
         <Route index element={<Landing />} />
         <Route path="login" element={<AuthPage mode="login" />} />
         <Route path="register" element={<AuthPage mode="register" />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="reset-password" element={<ResetPassword />} />
         <Route path="legal/:doc" element={<Legal />} />
         <Route path="*" element={<NotFound />} />
       </Route>

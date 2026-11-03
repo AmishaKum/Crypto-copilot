@@ -46,7 +46,7 @@ export default function Alerts() {
       </PageHeader>
       <p className="mb-4 flex items-start gap-2 rounded-xl border border-line bg-surface p-3 text-xs text-muted">
         <Info size={14} className="mt-0.5 shrink-0 text-btc" aria-hidden />
-        <span>Alerts are checked every couple of minutes <strong>while the server is running</strong> (free hosting may sleep when idle), plus whenever you press "Check now". Each alert fires once when its condition becomes true, then re-arms after it becomes false. Notifications appear here only; email and push aren't available yet.
+        <span>Alerts are checked every couple of minutes <strong>while the server is running</strong> (free hosting may sleep when idle), plus whenever you press "Check now". Each alert fires once when its condition becomes true, then re-arms after it becomes false. Notifications appear here, and by email too if you turn on "Email me when an alert is triggered" in Settings.
           {data?.lastCheckedAt && <> Last automatic check: {timeAgo(data.lastCheckedAt)}.</>}</span>
       </p>
       {msg?.error && <div className="mb-4"><ErrorState error={msg.error} compact /></div>}

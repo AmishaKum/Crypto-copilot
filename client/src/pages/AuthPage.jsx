@@ -46,6 +46,7 @@ export default function AuthPage({ mode }) {
           <Field label="Password" id="password" hint={!isLogin && "At least 8 characters, with a letter and a number."}>
             <Input id="password" type="password" autoComplete={isLogin ? "current-password" : "new-password"} required value={form.password} onChange={set("password")} />
           </Field>
+          {isLogin && <p className="-mt-2 text-right text-xs"><Link className="link" to="/forgot-password">Forgot password?</Link></p>}
           {error && <ErrorState error={error} compact />}
           <Button type="submit" loading={busy} className="w-full">{isLogin ? "Log in" : "Create account"}</Button>
         </form>

@@ -110,3 +110,28 @@ test("theme toggle switches dark/light", async () => {
   fireEvent.click(await screen.findByRole("button", { name: /switch to light/i }));
   expect(document.documentElement.classList.contains("dark")).toBe(false);
 });
+
+test("login page links to forgot password, which shows a generic confirmation", async () => {
+  const calls = mockApi({ overrides: { "/auth/forgot-password": { ok: true, message: "If an account exists for that email, we've sent a password reset link." } } });
+  renderAt("/login");
+  fireEvent.click(await screen.findByRole("link", { name: "Forgot password?" }));
+  fireEvent.change(await screen.findByLabelText("Email"), { target: { value: "a@b.co" } });
+  fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
+  expect(await screen.findByText(/If an account exists/)).toBeInTheDocument();
+  expect(calls.some((c) => c.url.includes("/auth/forgot-password"))).toBe(true);
+});
+
+test("reset page rejects a missing token and validates matching passwords", async () => {
+  mockApi();
+  renderAt("/reset-password");
+  expect(await screen.findByText(/incomplete or invalid/)).toBeInTheDocument();
+});
+
+test("reset page checks that passwords match", async () => {
+  mockApi();
+  renderAt(`/reset-password?token=${"a".repeat(64)}`);
+  fireEvent.change(await screen.findByLabelText("New password"), { target: { value: "newpass123" } });
+  fireEvent.change(screen.getByLabelText("Confirm new password"), { target: { value: "different123" } });
+  fireEvent.click(screen.getByRole("button", { name: "Reset password" }));
+  expect(await screen.findByText(/don't match/)).toBeInTheDocument();
+});

@@ -6,6 +6,8 @@ import { Alert, AlertEvent } from "../models/Alert.js";
 import LearningProgress from "../models/LearningProgress.js";
 import { issueToken, clearToken } from "../middleware/auth.js";
 import { HttpError } from "../utils/httpError.js";
+import { sendEmail, layout, emailConfigured } from "../services/emailService.js";
+import { env } from "../config/env.js";
 
 export const me = (req, res) => res.json({ user: req.user.toPublic() });
 
@@ -63,3 +65,26 @@ export async function deleteAccount(req, res) {
   clearToken(res);
   res.json({ ok: true });
 }
+
+export async function testEmail(req, res) {
+  const lines = [`Hi ${req.user.name},`, "This is a test email from Crypto Copilot. If you can read this, email alerts are working."];
+  try {
+    const r = await sendEmail({
+      to: req.user.email,
+      subject: "Crypto Copilot test email",
+      text: lines.join("\n\n"),
+      html: layout({ title: "Email is working ✓", lines, button: { label: "Open Crypto Copilot", url: `${env.appUrl}/app` } }),
+    });
+    res.json({
+      ok: true,
+      mode: r.mode,
+      message: r.delivered ? `Test email sent to ${req.user.email}. Check your inbox (and spam folder).`
+        : "Email isn't configured on the server yet, so the message was printed in the server terminal instead.",
+    });
+  } catch (e) {
+    console.error("[email] test failed:", e.message);
+    throw new HttpError(502, "The email server rejected the message. Check SMTP_HOST, SMTP_USER and SMTP_PASS in server/.env.", "EMAIL_FAILED");
+  }
+}
+
+export const emailStatus = (req, res) => res.json({ configured: emailConfigured() });

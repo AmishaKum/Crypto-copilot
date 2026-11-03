@@ -75,3 +75,33 @@ export async function getFees() {
     unit: "sat/vB", ...meta(r, "mempool.space"),
   };
 }
+
+export const HALVING_INTERVAL = 210_000;
+
+/** Pure halving maths from the current block height. */
+export function halvingInfo(height, now = Date.now()) {
+  const nextHalvingHeight = (Math.floor(height / HALVING_INTERVAL) + 1) * HALVING_INTERVAL;
+  const blocksLeft = nextHalvingHeight - height;
+  const era = Math.floor(height / HALVING_INTERVAL);
+  return {
+    height,
+    nextHalvingHeight,
+    blocksLeft,
+    estimatedDate: new Date(now + blocksLeft * 10 * 60_000).toISOString(), // ~10 minutes per block
+    blockRewardBtc: 50 / 2 ** era,
+    nextBlockRewardBtc: 50 / 2 ** (era + 1),
+    progressPct: +(((HALVING_INTERVAL - blocksLeft) / HALVING_INTERVAL) * 100).toFixed(2),
+  };
+}
+
+/** Network status: tip height, halving countdown and mempool backlog (mempool.space). */
+export async function getNetwork() {
+  const r = await cached("btc-network", 60_000, async () => {
+    const [height, mempool] = await Promise.all([
+      upstream(`${MEMPOOL}/blocks/tip/height`, { name: "mempool.space", text: true }).then(Number),
+      upstream(`${MEMPOOL}/mempool`, { name: "mempool.space" }),
+    ]);
+    return { ...halvingInfo(height), mempool: { txCount: mempool.count, vsize: mempool.vsize, totalFeeSats: mempool.total_fee } };
+  });
+  return { ...r.value, ...meta(r, "mempool.space") };
+}

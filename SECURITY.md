@@ -26,7 +26,8 @@
 - [ ] Set `JWT_SECRET` (32+ random chars) and `NODE_ENV=production` on the host
 - [ ] Restrict Atlas network access as far as your host allows; use a least-privilege DB user
 - [ ] Enable GitHub Dependabot alerts and secret scanning
-- [ ] Add email verification and password reset (not implemented in the MVP)
+- [x] Password reset: 32-byte random token, only its SHA-256 hash stored, 30-minute expiry, single use, logs out all sessions, generic response (no account enumeration), 5 requests/hour/IP
+- [ ] Add email verification
 - [ ] Consider a CSP tuned for the deployed domains
 
 ## Hard rules

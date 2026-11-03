@@ -10,9 +10,13 @@ const userSchema = new mongoose.Schema(
     preferences: {
       currency: { type: String, enum: ["USD", "INR"], default: "USD" },
       aiIncludePortfolio: { type: Boolean, default: false },
+      emailAlerts: { type: Boolean, default: false },
     },
     watchlist: { type: [String], default: ["bitcoin"] },
     lastLoginAt: Date,
+    // Password reset: only a SHA-256 hash of the emailed token is stored.
+    resetTokenHash: { type: String, select: false },
+    resetTokenExpires: { type: Date, select: false },
   },
   { timestamps: true }
 );

@@ -10,6 +10,11 @@ export const registerSchema = z.object({
   email,
   password: password.refine((p) => /[A-Za-z]/.test(p) && /\d/.test(p), "must include a letter and a number"),
 });
+export const forgotSchema = z.object({ email });
+export const resetPasswordSchema = z.object({
+  token: z.string().regex(/^[0-9a-f]{64}$/, "is invalid"),
+  password: z.string().min(8, "must be at least 8 characters").max(128).refine((p) => /[A-Za-z]/.test(p) && /\d/.test(p), "must include a letter and a number"),
+});
 export const loginSchema = z.object({ email, password: z.string().min(1, "is required").max(128) });
 
 export const updateMeSchema = z.object({
@@ -17,6 +22,7 @@ export const updateMeSchema = z.object({
   preferences: z.object({
     currency: z.enum(["USD", "INR"]).optional(),
     aiIncludePortfolio: z.boolean().optional(),
+    emailAlerts: z.boolean().optional(),
   }).strict().optional(),
 }).strict();
 export const changePasswordSchema = z.object({ currentPassword: z.string().min(1).max(128), newPassword: registerSchema.shape.password });

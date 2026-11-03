@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Download, LogOut, ShieldCheck, Trash2, UserRound } from "lucide-react";
+import { Download, LogOut, Mail, ShieldCheck, Trash2, UserRound } from "lucide-react";
+import { useApi } from "../lib/useApi";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
 import { Button, Card, CardHeader, ErrorState, Field, Input, PageHeader, Segmented } from "../components/ui";
@@ -26,6 +27,8 @@ export default function Settings() {
   const [profile, runProfile] = useAction();
   const [pass, runPass] = useAction();
   const [danger, runDanger] = useAction();
+  const [mailTest, runMailTest] = useAction();
+  const emailStatus = useApi("/me/email-status");
   const prefs = user.preferences;
 
   async function exportData() {
@@ -60,6 +63,27 @@ export default function Settings() {
               <span className="text-xs text-muted">Sends only simulated balances and P&L (never your name or email) so answers can reference them.</span></span>
             <input type="checkbox" className="mt-1 h-4 w-4 accent-[#f7931a]" checked={prefs.aiIncludePortfolio} onChange={(e) => update({ preferences: { aiIncludePortfolio: e.target.checked } })} />
           </label>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader icon={Mail} title="Email notifications" sub={`Sent to ${user.email}`} />
+        <label className="flex items-start justify-between gap-4 text-sm">
+          <span><span className="block">Email me when an alert is triggered</span>
+            <span className="text-xs text-muted">One email each time an alert's condition becomes true. In-app alerts keep working either way.</span></span>
+          <input type="checkbox" className="mt-1 h-4 w-4 accent-[#f7931a]" checked={!!prefs.emailAlerts} onChange={(e) => update({ preferences: { emailAlerts: e.target.checked } })} aria-label="Email me when an alert is triggered" />
+        </label>
+        {emailStatus.data && !emailStatus.data.configured && (
+          <p className="mt-3 rounded-xl bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+            Email sending isn't configured on this server yet (SMTP settings in server/.env), so emails are printed in the server terminal instead.
+          </p>
+        )}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button variant="ghost" size="sm" loading={mailTest.busy}
+            onClick={() => runMailTest(() => api("/me/test-email", { method: "POST" }), "Test email sent. Check your inbox (or the server terminal if email isn't configured).")}>
+            <Mail size={14} /> Send test email
+          </Button>
+          <Feedback s={mailTest} />
         </div>
       </Card>
 

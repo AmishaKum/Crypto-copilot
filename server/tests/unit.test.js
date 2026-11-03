@@ -92,3 +92,13 @@ describe("gemini model selection", async () => {
     expect(pickGeminiModel([m("gemini-3.8-pro")])).toBe(null);
   });
 });
+
+describe("halving maths", async () => {
+  const { halvingInfo } = await import("../src/services/marketService.js");
+  it("computes the next halving and rewards", () => {
+    const h = halvingInfo(840_000, 0);
+    expect(h).toMatchObject({ nextHalvingHeight: 1_050_000, blocksLeft: 210_000, blockRewardBtc: 3.125, nextBlockRewardBtc: 1.5625, progressPct: 0 });
+    expect(halvingInfo(1_049_999, 0).blocksLeft).toBe(1);
+    expect(new Date(halvingInfo(1_049_994, 0).estimatedDate).getTime()).toBe(6 * 600_000);
+  });
+});

@@ -17,7 +17,20 @@ export function AuthProvider({ children }) {
     await api("/auth/logout", { method: "POST" }).catch(() => {});
     setUser(null);
   }, []);
-  const update = useCallback(async (patch) => setUser((await api("/me", { method: "PATCH", body: patch })).user), []);
+  // Optimistic: show preference changes immediately, then confirm (or roll back) with the server's copy.
+  const update = useCallback(async (patch) => {
+    let previous;
+    setUser((u) => {
+      previous = u;
+      return u && { ...u, ...(patch.name && { name: patch.name }), preferences: { ...u.preferences, ...patch.preferences } };
+    });
+    try {
+      setUser((await api("/me", { method: "PATCH", body: patch })).user);
+    } catch (err) {
+      setUser(previous);
+      throw err;
+    }
+  }, []);
 
   return <AuthContext.Provider value={{ user, setUser, loading, login, register, logout, update }}>{children}</AuthContext.Provider>;
 }
