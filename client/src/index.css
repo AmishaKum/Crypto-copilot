@@ -7,11 +7,13 @@
     --ink: 15 23 42; --muted: 82 94 117; --line: 226 232 240;
     --bg: 246 247 251; --surface: 255 255 255; --surface-2: 248 250 252;
     --series-1: #d97706; --series-2: #7c3aed;
+    --cat-1: #d97706; --cat-2: #2a78d6; --cat-3: #1baf7a; --cat-4: #7c3aed; --cat-5: #e87ba4; --cat-6: #008300; --cat-cash: #94a3b8;
   }
   .dark {
     --ink: 241 245 249; --muted: 148 160 184; --line: 33 45 82;
     --bg: 6 11 24; --surface: 12 19 38; --surface-2: 16 25 49;
     --series-1: #d97706; --series-2: #8b5cf6;
+    --cat-1: #d97706; --cat-2: #3987e5; --cat-3: #199e70; --cat-4: #8b5cf6; --cat-5: #d55181; --cat-6: #008300; --cat-cash: #64748b;
   }
   html { color-scheme: light; }
   html.dark { color-scheme: dark; }

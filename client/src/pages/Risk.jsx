@@ -37,7 +37,11 @@ export default function Risk() {
   async function useMine() {
     try {
       const p = await api("/portfolio");
-      const mine = { label: "My virtual portfolio", btc: String(p.btcSats / 1e8), cashUsd: String(p.cashCents / 100) };
+      // All coins are expressed as a BTC-equivalent amount (crypto prices tend to move together; see assumptions).
+      const btcPrice = p.priceCents ? p.priceCents / 100 : null;
+      const btcEq = btcPrice && p.holdingsValueCents != null ? p.holdingsValueCents / 100 / btcPrice : p.btcSats / 1e8;
+      const others = p.holdings.filter((h) => h.coin !== "bitcoin").length;
+      const mine = { label: others ? "My portfolio (all coins as BTC-eq.)" : "My virtual portfolio", btc: String(+btcEq.toFixed(8)), cashUsd: String(p.cashCents / 100) };
       setPfs((cur) => [mine, ...cur.slice(1)]);
     } catch (e) { setError(e); }
   }

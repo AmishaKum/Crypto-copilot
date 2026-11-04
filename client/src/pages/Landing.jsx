@@ -7,7 +7,7 @@ import { Badge, Skeleton, SourceTag } from "../components/ui";
 const FEATURES = [
   { icon: Sparkles, title: "AI Bitcoin assistant", text: "Ask why the market moved or what a term means. Answers cite the live data they use and flag what's uncertain." },
   { icon: Search, title: "Transaction detective", text: "Paste a transaction ID to see confirmations, fees and inputs/outputs, explained in plain language." },
-  { icon: Wallet, title: "Virtual portfolio", text: "Practice buying and selling BTC at live prices with simulated money. Track fees and profit/loss honestly." },
+  { icon: Wallet, title: "Virtual portfolio", text: "Practice buying and selling Bitcoin and 9 other coins at live prices with simulated money. Track fees and profit/loss honestly." },
   { icon: ShieldAlert, title: "Risk simulator", text: "See what a 10%, 30% or 50% crash would do to a portfolio before it happens, with the maths shown." },
   { icon: Bell, title: "Smart alerts", text: "In-app alerts when BTC crosses your price or network fees drop below your target." },
   { icon: GraduationCap, title: "Crypto academy", text: "Short lessons, quizzes and a scam dojo that trains you to spot the tricks that cost people money." },
@@ -149,7 +149,7 @@ export default function Landing() {
           <div className="card">
             <div className="flex items-center justify-between"><p className="label">Portfolio preview</p><Badge tone="warn">Illustration, not real results</Badge></div>
             <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
-              {[["Virtual cash", "Starts at $10,000"], ["BTC held", "Bought at live prices"], ["Fees", "0.10% per simulated trade"], ["P&L", "Realized + unrealized, average-cost"]].map(([k, v]) => (
+              {[["Virtual cash", "Starts at $10,000"], ["Coins", "BTC, ETH, SOL, DOGE and more"], ["Fees", "0.10% per simulated trade"], ["P&L", "Realized + unrealized, average-cost"]].map(([k, v]) => (
                 <div key={k}><dt className="text-xs text-muted">{k}</dt><dd className="font-medium">{v}</dd></div>
               ))}
             </dl>

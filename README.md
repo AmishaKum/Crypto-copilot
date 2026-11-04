@@ -13,7 +13,8 @@ Educational only: **no real money, no custody, no keys.**
 | Dashboard | BTC price in USD/INR, 24h change/high/low, market cap, volume, 24H–1Y chart, mempool fee estimates, watchlist, source + freshness on every number |
 | Tx Detective | Look up a transaction (status, confirmations, fee, fee rate, inputs/outputs) or a block by height/hash, with plain-English interpretation and a link to verify on mempool.space |
 | AI assistant | Gemini or Anthropic (swappable). Sends live data with sources/timestamps, returns an answer + evidence list + data-quality badge, blocks seed phrases/private keys, per-user and daily limits |
-| Virtual portfolio | Simulated buy/sell at the server's live price, 0.10% simulated fee, average-cost P&L (realized/unrealized), history chart, confirmed reset |
+| Virtual portfolio | Simulated buy/sell of 10 coins (BTC, ETH, SOL, BNB, XRP, ADA, DOGE, LTC, DOT, LINK) at the server's live prices, 0.10% simulated fee, per-coin average-cost P&L, allocation chart, history chart, CSV export, confirmed reset |
+| Buy for real | "Buy for real" opens CoinDCX, WazirX, Binance or Coinbase after a safety warning. Crypto Copilot never handles real money |
 | Risk simulator | Price shocks (−99% … +500%) on one or two portfolios, concentration warning, calculations and assumptions shown |
 | Alerts | Price above/below (USD/INR) and fee above/below; fire once per crossing; in-app history and optional email |
 | Password reset | "Forgot password?" emails a single-use link that expires in 30 minutes |
@@ -90,7 +91,7 @@ Authenticated: `/api/auth/*`, `/api/me` (+ `/password`, `/watchlist/:id`, `/expo
 All state-changing requests must send `X-Requested-With: CryptoCopilot` (the client does this automatically).
 
 ### Accounting (virtual portfolio)
-Money is stored as integers (USD cents, satoshis). Buys debit `notional + fee` and add that to cost basis; sells credit
+Money is stored as integers (USD cents; coin amounts in 1e-8 units; prices in micro-dollars so low-priced coins stay exact). Buys debit `notional + fee` and add that to cost basis; sells credit
 `notional − fee` and remove cost basis proportionally (average cost); realized P&L = proceeds − removed basis.
 Trades use the server's live CoinGecko price and are refused if the price is missing or stale. Updates use optimistic
 concurrency so simultaneous trades can't overspend.
@@ -113,7 +114,7 @@ concurrency so simultaneous trades can't overspend.
 ## Known limitations
 - Market and chain data depend on free public APIs (CoinGecko, mempool.space) which have undisclosed or changing rate limits; responses are cached (30 s–10 min) and stale data is labelled.
 - Alerts are evaluated only while the API process is up (email delivery needs SMTP settings; no push notifications yet).
-- The virtual portfolio is BTC/USD only; INR is display-only for market data.
+- The virtual portfolio is accounted in USD; INR is display-only for market data. Exchange links are plain links (no affiliate tracking) and coin availability varies by exchange.
 - The AI assistant has no news feed, so it cannot confirm causes of price moves (it says so).
 - Tailwind CSS v3 has dev-only `npm audit` advisories in its file-watching dependencies (not shipped to users); fix by migrating to Tailwind v4.
 

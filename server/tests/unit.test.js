@@ -17,24 +17,29 @@ describe("money", () => {
 });
 
 describe("computeTrade", () => {
-  const state = { cashCents: 1_000_000, btcSats: 0, costBasisCents: 0 };
+  const state = { cashCents: 1_000_000, units: 0, costBasisCents: 0 };
+  const BTC50K = 50_000_000_000; // $50,000 in micro-dollars
   it("buy deducts notional + fee and adds cost basis", () => {
-    const t = computeTrade(state, { side: "buy", sats: 10_000_000, priceCents: 5_000_000, feeBps: 10 });
+    const t = computeTrade(state, { side: "buy", units: 10_000_000, priceMicros: BTC50K, feeBps: 10 });
     expect(t).toMatchObject({ notional: 500_000, fee: 500, cashDelta: -500_500, basisDelta: 500_500, realized: 0 });
   });
   it("rejects spending more cash than available", () => {
-    expect(() => computeTrade(state, { side: "buy", sats: 100_000_000, priceCents: 5_000_000, feeBps: 10 })).toThrow(/Not enough virtual cash/);
+    expect(() => computeTrade(state, { side: "buy", units: 100_000_000, priceMicros: BTC50K, feeBps: 10 })).toThrow(/Not enough virtual cash/);
   });
-  it("rejects selling more than held", () => {
-    expect(() => computeTrade(state, { side: "sell", sats: 1_000, priceCents: 5_000_000, feeBps: 0 })).toThrow(/more BTC than you hold/);
+  it("rejects selling more than held, naming the coin", () => {
+    expect(() => computeTrade(state, { side: "sell", units: 1_000_000, priceMicros: 2_500_000_000, feeBps: 0, symbol: "ETH" })).toThrow(/more ETH than you hold/);
   });
-  it("rejects dust trades", () => {
-    expect(() => computeTrade(state, { side: "buy", sats: 10, priceCents: 5_000_000, feeBps: 0 })).toThrow(/Minimum/);
+  it("rejects trades under $1", () => {
+    expect(() => computeTrade(state, { side: "buy", units: 1_000, priceMicros: BTC50K, feeBps: 0 })).toThrow(/Minimum trade value is \$1/);
   });
   it("sell uses average cost for realized P&L", () => {
-    const held = { cashCents: 0, btcSats: 20_000_000, costBasisCents: 1_000_000 }; // 0.2 BTC cost $10,000
-    const t = computeTrade(held, { side: "sell", sats: 10_000_000, priceCents: 6_000_000, feeBps: 0 }); // sell half @ $60k
+    const held = { cashCents: 0, units: 20_000_000, costBasisCents: 1_000_000 }; // 0.2 BTC cost $10,000
+    const t = computeTrade(held, { side: "sell", units: 10_000_000, priceMicros: 60_000_000_000, feeBps: 0 }); // sell half @ $60k
     expect(t).toMatchObject({ notional: 600_000, basisDelta: -500_000, realized: 100_000 });
+  });
+  it("prices low-value coins exactly (DOGE at $0.1234)", () => {
+    const t = computeTrade(state, { side: "buy", units: 1_000 * 100_000_000, priceMicros: 123_400, feeBps: 0 }); // 1,000 DOGE
+    expect(t.notional).toBe(12_340); // $123.40, not $120 from rounding the price to cents
   });
 });
 

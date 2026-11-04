@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import request from "supertest";
-import { app, H, startDb, stopDb, clearDb, loginAgent, mockUpstream, coingeckoCoin, feesBody } from "./helpers.js";
+import { app, H, startDb, stopDb, clearDb, loginAgent, mockUpstream, coingeckoCoin, feesBody, simplePrices } from "./helpers.js";
 import { lastEmails, clearOutbox } from "../src/services/emailService.js";
 import { evaluateAlerts } from "../src/services/alertService.js";
 
@@ -95,14 +95,14 @@ describe("network status and CSV export", () => {
   });
 
   it("exports the user's trades as CSV", async () => {
-    mockUpstream({ "/coins/bitcoin?": coingeckoCoin(50_000) });
+    mockUpstream({ "/simple/price": simplePrices(50_000) });
     const { agent } = await loginAgent();
     await agent.post("/api/portfolio/trades").set(H).send({ side: "buy", btc: 0.01 });
     const r = await agent.get("/api/portfolio/trades.csv");
     expect(r.headers["content-type"]).toMatch(/text\/csv/);
     const lines = r.text.trim().split("\n");
-    expect(lines[0]).toMatch(/^"date","side","btc"/);
-    expect(lines[1]).toMatch(/"buy","0.01000000","50000.00","500.00","0.50"/);
+    expect(lines[0]).toMatch(/^"date","coin","symbol","side","amount"/);
+    expect(lines[1]).toMatch(/"bitcoin","BTC","buy","0.01000000","50000.00","500.00","0.50"/);
     expect((await request(app).get("/api/portfolio/trades.csv")).status).toBe(401);
   });
 });

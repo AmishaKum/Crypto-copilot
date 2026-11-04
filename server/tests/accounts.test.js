@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import request from "supertest";
-import { app, H, startDb, stopDb, clearDb, loginAgent, mockUpstream, coingeckoCoin, feesBody } from "./helpers.js";
+import { app, H, startDb, stopDb, clearDb, loginAgent, mockUpstream, coingeckoCoin, feesBody, simplePrices } from "./helpers.js";
 import { env } from "../src/config/env.js";
 import { evaluateAlerts } from "../src/services/alertService.js";
 import { AlertEvent } from "../src/models/Alert.js";
@@ -69,7 +69,7 @@ describe("authentication", () => {
 });
 
 describe("virtual portfolio", () => {
-  beforeEach(() => { mockUpstream({ "/coins/bitcoin?": coingeckoCoin(50_000) }); });
+  beforeEach(() => { mockUpstream({ "/simple/price": simplePrices(50_000) }); });
 
   it("starts with $10,000 virtual cash", async () => {
     const { agent } = await loginAgent();
@@ -84,7 +84,7 @@ describe("virtual portfolio", () => {
     expect(b.status).toBe(201);
     expect(b.body.portfolio).toMatchObject({ cashCents: 1_000_000 - 500_500, btcSats: 10_000_000, costBasisCents: 500_500 });
 
-    mockUpstream({ "/coins/bitcoin?": coingeckoCoin(60_000) });
+    mockUpstream({ "/simple/price": simplePrices(60_000) });
     const s = await agent.post("/api/portfolio/trades").set(H).send({ side: "sell", btc: 0.05 });
     // proceeds 300,000 - fee 300 = 299,700; basis removed 250,250 -> realized 49,450 cents
     expect(s.body.trade.realizedPnlCents).toBe(49_450);
@@ -103,7 +103,7 @@ describe("virtual portfolio", () => {
   it("prevents overspending and overselling", async () => {
     const { agent } = await loginAgent();
     expect((await agent.post("/api/portfolio/trades").set(H).send({ side: "buy", btc: 1 })).body.code).toBe("INSUFFICIENT_CASH");
-    expect((await agent.post("/api/portfolio/trades").set(H).send({ side: "sell", btc: 0.01 })).body.code).toBe("INSUFFICIENT_BTC");
+    expect((await agent.post("/api/portfolio/trades").set(H).send({ side: "sell", btc: 0.01 })).body.code).toBe("INSUFFICIENT_BALANCE");
     expect((await agent.post("/api/portfolio/trades").set(H).send({ side: "buy", btc: -1 })).status).toBe(400);
   });
   it("concurrent buys never overspend", async () => {
@@ -113,6 +113,7 @@ describe("virtual portfolio", () => {
     const p = await agent.get("/api/portfolio");
     expect(p.body.cashCents).toBeGreaterThanOrEqual(0);
     expect(p.body.btcSats).toBe(ok * 7_000_000);
+    expect(p.body.cashCents).toBe(1_000_000 - ok * 350_350);
   });
   it("pauses trading when price is unavailable", async () => {
     const { agent } = await loginAgent();
@@ -334,5 +335,53 @@ describe("Gemini overloaded fallback", () => {
       expect(r.body.code).toBe("AI_OVERLOADED");
       expect(r.body.error).toMatch(/busy or temporarily unavailable/);
     } finally { Object.assign(env, { aiApiKey: "", aiModel: "" }); }
+  });
+});
+
+describe("multi-coin virtual trading", () => {
+  beforeEach(() => { mockUpstream({ "/simple/price": simplePrices(50_000) }); });
+
+  it("buys and sells several coins with separate holdings and allocation", async () => {
+    const { agent } = await loginAgent();
+    expect((await agent.post("/api/portfolio/trades").set(H).send({ coin: "ethereum", side: "buy", amount: 2 })).status).toBe(201);
+    expect((await agent.post("/api/portfolio/trades").set(H).send({ coin: "dogecoin", side: "buy", usd: 100 })).status).toBe(201);
+    expect((await agent.post("/api/portfolio/trades").set(H).send({ side: "buy", btc: 0.01 })).status).toBe(201);
+
+    const p = (await agent.get("/api/portfolio")).body;
+    const by = Object.fromEntries(p.holdings.map((h) => [h.symbol, h]));
+    expect(by.ETH).toMatchObject({ amount: 2, valueCents: 500_000, costBasisCents: 500_500 });
+    expect(by.DOGE.valueCents).toBeGreaterThan(9_900);
+    expect(by.BTC.valueCents).toBe(50_000);
+    expect(p.holdings[0].symbol).toBe("ETH"); // sorted by value
+    const alloc = p.holdings.reduce((s, h) => s + h.allocationPct, 0) + p.cashPct;
+    expect(Math.round(alloc)).toBe(100);
+    expect(p.equityCents).toBe(p.cashCents + p.holdingsValueCents);
+
+    mockUpstream({ "/simple/price": simplePrices(50_000, { ethereum: { usd: 3_000, inr: 1, usd_24h_change: 0 } }) });
+    const sell = await agent.post("/api/portfolio/trades").set(H).send({ coin: "ethereum", side: "sell", amount: 1 });
+    expect(sell.body.trade).toMatchObject({ coin: "ethereum", realizedPnlCents: 300_000 - 300 - 250_250 });
+    const hist = (await agent.get("/api/portfolio/trades")).body;
+    expect(hist.trades[0].coin).toBe("ethereum");
+    expect(hist.curve.at(-1).equityCents).toBe(sell.body.portfolio.equityCents);
+  });
+
+  it("rejects unknown coins, overselling another coin, and trades without a price", async () => {
+    const { agent } = await loginAgent();
+    expect((await agent.post("/api/portfolio/trades").set(H).send({ coin: "scamcoin", side: "buy", usd: 10 })).status).toBe(400);
+    const r = await agent.post("/api/portfolio/trades").set(H).send({ coin: "solana", side: "sell", amount: 1 });
+    expect(r.body).toMatchObject({ code: "INSUFFICIENT_BALANCE" });
+    expect(r.body.error).toMatch(/SOL/);
+    // cardano has no price in the mock
+    expect((await agent.post("/api/portfolio/trades").set(H).send({ coin: "cardano", side: "buy", usd: 10 })).body.code).toBe("PRICE_UNAVAILABLE");
+  });
+
+  it("migrates an old BTC-only portfolio into holdings", async () => {
+    const { agent, user } = await loginAgent();
+    const Portfolio = (await import("../src/models/Portfolio.js")).default;
+    await Portfolio.collection.insertOne({ user: new (await import("mongoose")).default.Types.ObjectId(user.id), startingCashCents: 1_000_000, cashCents: 500_000, btcSats: 10_000_000, costBasisCents: 500_000, realizedPnlCents: 0, feesPaidCents: 0, tradeCount: 1 });
+    const p = (await agent.get("/api/portfolio")).body;
+    expect(p.btcSats).toBe(10_000_000);
+    expect(p.holdings[0]).toMatchObject({ coin: "bitcoin", costBasisCents: 500_000 });
+    expect((await agent.post("/api/portfolio/trades").set(H).send({ side: "sell", btc: 0.05 })).status).toBe(201);
   });
 });

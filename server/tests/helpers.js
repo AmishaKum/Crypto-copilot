@@ -29,6 +29,14 @@ export const coingeckoCoin = (usd = 50_000, inr = 4_200_000) => ({
     price_change_percentage_24h_in_currency: { usd: 1.5, inr: 1.4 }, last_updated: "2026-10-10T12:00:00.000Z",
   },
 });
+/** CoinGecko /simple/price body for all supported coins (BTC at `btc`, others fixed demo prices). */
+export const simplePrices = (btc = 50_000, overrides = {}) => ({
+  bitcoin: { usd: btc, inr: btc * 84, usd_24h_change: 1.5 },
+  ethereum: { usd: 2_500, inr: 210_000, usd_24h_change: -0.8 },
+  dogecoin: { usd: 0.1234, inr: 10.37, usd_24h_change: 3.1 },
+  solana: { usd: 150, inr: 12_600, usd_24h_change: 2.2 },
+  ...overrides,
+});
 export const feesBody = { fastestFee: 20, halfHourFee: 15, hourFee: 10, economyFee: 5, minimumFee: 1 };
 
 const json = (body, status = 200) => ({ ok: status < 400, status, json: async () => body, text: async () => String(body) });

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { WATCHABLE, CHART_DAYS } from "../services/marketService.js";
+import { WATCHABLE, COINS, CHART_DAYS } from "../services/marketService.js";
 import { ALERT_KINDS } from "../models/Alert.js";
 
 const email = z.string().trim().toLowerCase().email("must be a valid email").max(254);
@@ -42,10 +42,12 @@ export const blockParamSchema = z.object({
 
 const positive = (max) => z.coerce.number().positive("must be greater than 0").max(max).finite();
 export const tradeSchema = z.object({
+  coin: z.enum(Object.keys(COINS)).default("bitcoin"),
   side: z.enum(["buy", "sell"]),
-  btc: positive(1000).optional(),
+  amount: positive(1e12).optional(), // coin quantity
+  btc: positive(1000).optional(), // legacy alias for amount when trading BTC
   usd: positive(10_000_000).optional(),
-}).strict().refine((t) => (t.btc != null) !== (t.usd != null), "Provide exactly one of btc or usd");
+}).strict().refine((t) => [t.amount, t.btc, t.usd].filter((v) => v != null).length === 1, "Provide exactly one of amount or usd")
 export const resetSchema = z.object({
   confirm: z.literal("RESET", { errorMap: () => ({ message: 'Type "RESET" to confirm' }) }),
   startingUsd: z.coerce.number().min(100).max(1_000_000).default(10_000),

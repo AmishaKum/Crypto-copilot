@@ -135,3 +135,25 @@ test("reset page checks that passwords match", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Reset password" }));
   expect(await screen.findByText(/don't match/)).toBeInTheDocument();
 });
+
+test("portfolio shows multi-coin holdings and the Buy-for-real warning", async () => {
+  const holding = (coin, symbol, name, amount, value) => ({ coin, symbol, name, units: amount * 1e8, amount, costBasisCents: value, avgCostMicros: 1e6, priceMicros: 1e6, valueCents: value, change24hPct: 1, unrealizedPnlCents: 0, allocationPct: 10 });
+  mockApi({
+    loggedIn: true,
+    overrides: {
+      "/portfolio/trades": { trades: [], curve: [] },
+      "/portfolio": { startingCashCents: 1_000_000, cashCents: 800_000, holdings: [holding("ethereum", "ETH", "Ethereum", 0.5, 125_000), holding("dogecoin", "DOGE", "Dogecoin", 600, 75_000)], holdingsValueCents: 200_000, equityCents: 1_000_000, totalPnlCents: 0, cashPct: 80, realizedPnlCents: 0, unrealizedPnlCents: 0, feesPaidCents: 0, tradeCount: 2, feeBps: 10, priceSource: "CoinGecko", priceAsOf: new Date().toISOString() },
+      "/market/coins": { coins: [{ id: "bitcoin", name: "Bitcoin", symbol: "BTC" }, { id: "ethereum", name: "Ethereum", symbol: "ETH" }, { id: "dogecoin", name: "Dogecoin", symbol: "DOGE" }] },
+      "/market/watch": { items: [{ id: "bitcoin", usd: 60000 }, { id: "ethereum", usd: 2500 }, { id: "dogecoin", usd: 0.125 }], source: "CoinGecko" },
+    },
+  });
+  renderAt("/app/portfolio");
+  expect(await screen.findByText("Holdings")).toBeInTheDocument();
+  expect((await screen.findAllByText("ETH")).length).toBeGreaterThan(0); // table row + allocation legend
+  expect(screen.getAllByText("DOGE").length).toBeGreaterThan(0);
+  fireEvent.click(screen.getByRole("button", { name: "Buy ETH for real" }));
+  expect(await screen.findByText(/You're leaving Crypto Copilot/)).toBeInTheDocument();
+  const link = screen.getByRole("link", { name: /Binance/ });
+  expect(link).toHaveAttribute("href", "https://www.binance.com/en-IN/trade/ETH_USDT");
+  expect(link).toHaveAttribute("rel", "noopener noreferrer");
+});

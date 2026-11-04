@@ -8,10 +8,14 @@ const COINGECKO = process.env.COINGECKO_API_URL || "https://api.coingecko.com/ap
 const MEMPOOL = process.env.MEMPOOL_API_URL || "https://mempool.space/api";
 
 // CoinGecko ids users may add to a watchlist. The MVP focuses on Bitcoin; others are for comparison only.
-export const WATCHABLE = {
-  bitcoin: "Bitcoin", ethereum: "Ethereum", solana: "Solana", binancecoin: "BNB", ripple: "XRP",
-  cardano: "Cardano", dogecoin: "Dogecoin", litecoin: "Litecoin", polkadot: "Polkadot", chainlink: "Chainlink",
+// CoinGecko ids supported for watchlists and simulated trading.
+export const COINS = {
+  bitcoin: { name: "Bitcoin", symbol: "BTC" }, ethereum: { name: "Ethereum", symbol: "ETH" }, solana: { name: "Solana", symbol: "SOL" },
+  binancecoin: { name: "BNB", symbol: "BNB" }, ripple: { name: "XRP", symbol: "XRP" }, cardano: { name: "Cardano", symbol: "ADA" },
+  dogecoin: { name: "Dogecoin", symbol: "DOGE" }, litecoin: { name: "Litecoin", symbol: "LTC" }, polkadot: { name: "Polkadot", symbol: "DOT" },
+  chainlink: { name: "Chainlink", symbol: "LINK" },
 };
+export const WATCHABLE = Object.fromEntries(Object.entries(COINS).map(([id, c]) => [id, c.name]));
 export const CHART_DAYS = [1, 7, 30, 90, 365];
 
 const cg = (path) =>
@@ -104,4 +108,16 @@ export async function getNetwork() {
     return { ...halvingInfo(height), mempool: { txCount: mempool.count, vsize: mempool.vsize, totalFeeSats: mempool.total_fee } };
   });
   return { ...r.value, ...meta(r, "mempool.space") };
+}
+
+/** Live USD/INR prices and 24h change for every supported coin, in one cached request. */
+export async function getCoinPrices() {
+  const ids = Object.keys(COINS).sort().join(",");
+  const r = await cached("coin-prices", 60_000, () => cg(`/simple/price?ids=${ids}&vs_currencies=usd,inr&include_24hr_change=true`));
+  const prices = {};
+  for (const id of Object.keys(COINS)) {
+    const p = r.value[id];
+    if (typeof p?.usd === "number") prices[id] = { usd: p.usd, inr: p.inr ?? null, change24hPct: p.usd_24h_change ?? null };
+  }
+  return { prices, ...meta(r, "CoinGecko") };
 }

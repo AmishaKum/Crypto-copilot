@@ -1,7 +1,7 @@
 import Portfolio from "../models/Portfolio.js";
 import { ask, aiStatus } from "../services/ai/assistantService.js";
 import { summarize } from "../services/portfolioService.js";
-import { centsToUsd, satsToBtc } from "../utils/money.js";
+import { centsToUsd } from "../utils/money.js";
 
 export const status = (req, res) => res.json(aiStatus());
 
@@ -16,8 +16,8 @@ export async function chat(req, res) {
       // Only aggregate numbers are sent to the AI provider - no name, email or IDs.
       const s = summarize(p, null);
       portfolioSummary = {
-        startingCashUsd: centsToUsd(s.startingCashCents), cashUsd: centsToUsd(s.cashCents), btc: satsToBtc(s.btcSats),
-        avgCostUsdPerBtc: s.avgCostCentsPerBtc != null ? centsToUsd(s.avgCostCentsPerBtc) : null,
+        startingCashUsd: centsToUsd(s.startingCashCents), cashUsd: centsToUsd(s.cashCents),
+        holdings: s.holdings.map((h) => ({ coin: h.symbol, amount: h.amount, avgCostUsd: +(h.avgCostMicros / 1e6).toFixed(6), costBasisUsd: centsToUsd(h.costBasisCents) })),
         realizedPnlUsd: centsToUsd(s.realizedPnlCents), simulatedFeesPaidUsd: centsToUsd(s.feesPaidCents), trades: s.tradeCount,
       };
     }

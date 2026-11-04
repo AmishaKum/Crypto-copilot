@@ -15,3 +15,14 @@ export function notionalCents(sats, priceCents) {
 
 /** Fee in cents for a notional amount at `bps` basis points, rounded half-up. */
 export const feeCents = (notional, bps) => Math.round((notional * bps) / 10_000);
+
+// Prices are kept in micro-dollars (1e-6 USD) so low-priced coins (e.g. $0.1234) stay exact.
+export const usdToMicros = (usd) => Math.round(Number(usd) * 1e6);
+export const microsToCents = (micros) => Math.round(micros / 1e4);
+
+/** Value in cents of `units` (1e-8 of a coin) at `priceMicros` per coin, rounded half-up with BigInt. */
+export function notionalFromMicros(units, priceMicros) {
+  const n = BigInt(units) * BigInt(priceMicros);
+  const d = 10n ** 12n; // 1e8 units/coin * 1e4 micros/cent
+  return Number((n + d / 2n) / d);
+}
